@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام فهرسة الكتب والمراجع بالمكتبة</title>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --secondary: #2c5282;
+    --accent: #3182ce;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --green-bg: #dcfce7;
+    --green-txt: #166534;
+    --amber-bg: #fef3c7;
+    --amber-txt: #92400e;
+    --red-bg: #fee2e2;
+    --red-txt: #991b1b;
+  }
+  * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--text); }
+  header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #fff;
+    padding: 20px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  header h1 { margin: 0; font-size: 1.45rem; }
+  header p { margin: 4px 0 0; font-size: 0.9rem; color: #cbd5e1; }
+  .container { max-width: 1280px; margin: 22px auto; padding: 0 18px; }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--card);
+    padding: 16px 20px;
+    border-radius: 10px;
+    border-right: 5px solid var(--primary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .kpi-card span { font-size: 0.85rem; color: var(--muted); display: block; }
+  .kpi-card strong { font-size: 1.65rem; color: var(--primary); margin-top: 4px; display: block; }
+  .toolbar {
+    background: var(--card);
+    padding: 16px;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .toolbar input, .toolbar select {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  .toolbar input { flex: 1; min-width: 240px; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+  .btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: 0.2s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--secondary); }
+  .btn-success { background: #15803d; color: #fff; }
+  .btn-success:hover { background: #166534; }
+  .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { background: #f8fafc; }
+  .table-wrap {
+    background: var(--card);
+    border-radius: 10px;
+    overflow-x: auto;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  table { width: 100%; border-collapse: collapse; text-align: right; }
+  th {
+    background: var(--primary);
+    color: #fff;
+    padding: 13px 12px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.92rem;
+  }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:hover { background: #ebf4ff; }
+  .badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .st-avail { background: var(--green-bg); color: var(--green-txt); }
+  .st-loan { background: var(--amber-bg); color: var(--amber-txt); }
+  .st-dmg { background: var(--red-bg); color: var(--red-txt); }
+  .code-tag {
+    font-family: monospace;
+    background: #e2e8f0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    color: var(--primary);
+  }
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  .modal.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    width: 100%;
+    max-width: 520px;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
+  .modal-box h3 { margin-top: 0; color: var(--primary); }
+  .form-grid { display: grid; gap: 12px; }
+  .form-grid label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 4px; }
+  .form-grid input, .form-grid select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+  @media print {
+    .toolbar, .btn-action { display: none !important; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📚 نظام فهرسة الكتب والمراجع بالمكتبة</h1>
+    <p>قاعدة بيانات تفاعلية للبحث، التصنيف، إدارة الأرفف، وحالة الإعارة</p>
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button class="btn btn-success" onclick="openAddModal()">+ إضافة كتاب جديد</button>
+    <button class="btn btn-outline" onclick="exportCSV()">تصدير CSV</button>
+    <button class="btn btn-outline" onclick="window.print()">طباعة الفهرس</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="kpis">
+    <div class="kpi-card"><span>إجمالي العناوين المفهرسة</span><strong id="kpiTitles">0</strong></div>
+    <div class="kpi-card"><span>إجمالي عدد النسخ</span><strong id="kpiCopies">0</strong></div>
+    <div class="kpi-card"><span>النسخ المتاحة للإعارة</span><strong id="kpiAvail">0</strong></div>
+    <div class="kpi-card"><span>الكتب المُعارة حالياً</span><strong id="kpiLoaned">0</strong></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="ابحث باسم الكتاب، المؤلف، الكود، أو دار النشر..." oninput="renderTable()">
+    <select id="catFilter" onchange="renderTable()">
+      <option value="">كل التخصصات</option>
+    </select>
+    <select id="statusFilter" onchange="renderTable()">
+      <option value="">كل الحالات</option>
+      <option value="متاح">متاح</option>
+      <option value="مُعار">مُعار</option>
+      <option value="قيد الجرد">قيد الجرد</option>
+      <option value="تالف">تالف</option>
+    </select>
+    <button class="btn btn-outline" onclick="resetFilters()">إعادة ضبط</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>كود الفهرسة</th>
+          <th>التخصص</th>
+          <th>اسم الكتاب / المرجع</th>
+          <th>اسم المؤلف</th>
+          <th>دار النشر</th>
+          <th>النسخ</th>
+          <th>موقع الرف</th>
+          <th>الحالة</th>
+          <th class="btn-action">إجراء</th>
+        </tr>
+      </thead>
+      <tbody id="booksBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add/Edit Book Modal -->
+<div class="modal" id="bookModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">إضافة كتاب جديد للفهرس</h3>
+    <div class="form-grid">
+      <div><label>كود الفهرسة</label><input type="text" id="fCode" placeholder="مثال: MGT-068"></div>
+      <div><label>اسم الكتاب / المرجع</label><input type="text" id="fTitle"></div>
+      <div><label>اسم المؤلف</label><input type="text" id="fAuthor"></div>
+      <div><label>دار النشر</label><input type="text" id="fPublisher"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label>التخصص</label>
+          <select id="fCategory">
+            <option value="إدارة">إدارة</option>
+            <option value="اقتصاد">اقتصاد</option>
+            <option value="محاسبة">محاسبة</option>
+            <option value="نظم معلومات">نظم معلومات</option>
+            <option value="إحصاء">إحصاء</option>
+            <option value="حقوق إنسان">حقوق إنسان</option>
+            <option value="غير محدد">غير محدد</option>
+          </select>
+        </div>
+        <div><label>عدد النسخ</label><input type="number" id="fCopies" value="1" min="1"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div><label>موقع الرف</label><input type="text" id="fShelf" placeholder="مثال: رف MGT"></div>
+        <div>
+          <label>الحالة</label>
+          <select id="fStatus">
+            <option value="متاح">متاح</option>
+            <option value="مُعار">مُعار</option>
+            <option value="قيد الجرد">قيد الجرد</option>
+            <option value="تالف">تالف</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveBook()">حفظ البيانات</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INITIAL_BOOKS = [{"code": "STA-001", "title": "الاحصاء الاحتمالي", "author": "د-كامل سلطان", "publisher": "غير مذكور", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-002", "title": "الاحصاء التطبيقي", "author": "د-عدنان عوض", "publisher": "غير مذكور", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-003", "title": "الاساليب الكميه", "author": "د-محمد توفيق", "publisher": "دار المعارف", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-004", "title": "التحليل الاحصائي للبيانات", "author": "حلمي الفيل", "publisher": "دار الوفاء للطباعه والنشر", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-005", "title": "التحليل الاحصائي للمتغيرات المتعدده", "author": "د-عبد المرضي حامد", "publisher": "دار المريخ", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-006", "title": "الرياضه والتامين", "author": "د-محمد سامي المسلماني", "publisher": "غير مذكور", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-007", "title": "مقدمه في مبادئ الاحصاء", "author": "د-كمال سلطان محمد سالم", "publisher": "غير مذكور", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "STA-008", "title": "مناهج البحث العلمي", "author": "د-عدنان عوض", "publisher": "الشركه العربيه المتحده", "category": "إحصاء", "copies": 1, "shelf": "رف STA", "status": "متاح"}, {"code": "MGT-001", "title": "اثر الانماط القياديه", "author": "د-اياد عبدالله شعبان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-002", "title": "اداره الاعمال", "author": "د-سمير محمد فريد", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-003", "title": "اداره الاعمال الدوليه", "author": "غير مذكور", "publisher": "الرحمه للطباعه والنشر", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-004", "title": "اداره الاعمال الدوليه", "author": "اد-احمد عبد الرحمن احمد", "publisher": "دار المريخ للنشر", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-005", "title": "اداره العمليات والانتاج", "author": "سيد محمد جاد الرب", "publisher": "دار الصفا للطباعه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-006", "title": "اداره المشات الماليه", "author": "د-جاد الرب النياوي", "publisher": "غير مذكور", "category": "إدارة", "copies": 5, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-007", "title": "اداره المعرفه وعلاقتها", "author": "د-عبد العزيز غاب", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-008", "title": "اداره وقت العمل", "author": "د-هشام الكيلاني", "publisher": "المؤسسه العربيه للعلوم والثقافه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-009", "title": "اساسيات علم الاداره", "author": "د-خالد العمري", "publisher": "دار الفاروق", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-010", "title": "اساسيات في التمويل والاداره", "author": "اسماء احمد ابو القمصان", "publisher": "دار الكتاب الجامعي", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-011", "title": "اساسيات في التمويل والاداره الماليه", "author": "د-احمد فهمي ابوالقمصان", "publisher": "دار الكتاب الجامعي", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-012", "title": "اساسيات وطرق البحث العلمي", "author": "د-نعيم حافظ ابو جمعه", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-013", "title": "استراتجيه مواجهه الازمات والكوارث", "author": "د-نجلاء فتحي مصطفي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-014", "title": "اسس تقيم المشروعات", "author": "اويس عطوه الزنط", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-015", "title": "اسساسيات في التمويل والاداره الماليه", "author": "د-احمد فهمي ابو القمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-016", "title": "الاتجاهاتالاستثماريه العالميه", "author": "جون بيرت", "publisher": "المكتب العربي الحديث", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-017", "title": "الاداره الاستراتيجيه واثرها علي اداء المؤسسات", "author": "د- ايمن حسن الديراوي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-018", "title": "الاداره الحديثه في الؤسسات الصحفيه", "author": "د- فيروز عبد الحميد جابر", "publisher": "دار النهضه العربيه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-019", "title": "الاداره بالمشاركه", "author": "سيد الهواري", "publisher": "مكتبه عين شمس", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-020", "title": "التحكيم الالكتروني في عقود التجاره", "author": "د-علاء الامير موسي", "publisher": "المركز العربي", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-021", "title": "التحليل المالي اتجاهات صناعه القرار", "author": "د-محمد الفاتح", "publisher": "الدار الحديثه للكتب", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-022", "title": "التسويق الاساسيات والاتجاهات الحديثه", "author": "د- احمد فهمي ابو القمصان", "publisher": "دار الكتاب الجامعي", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-023", "title": "التسويق الاساسيات والاتجهات الحديثه", "author": "د-احمد فهمي ابوالقمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-024", "title": "التسويق الاسسيات والاتجاهات الحديثه", "author": "عد- عصمت سيد سليمان", "publisher": "دار الكتاب الجامعي", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-025", "title": "التسويق الدولي والتجاره الالكترونيه", "author": "د- عادل المهدي", "publisher": "غير مذكور", "category": "إدارة", "copies": 25, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-026", "title": "التسويق الدولي والمصدر الناجح", "author": "د-يحي سعيد علي عيد", "publisher": "دار الامين للطباعه والنشر", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-027", "title": "التسويق في ظل بيئه اقتصاديه", "author": "د- عبدالله رمضان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-028", "title": "التسويق في ظل بيئه اقتصاديه مضطربه", "author": "د-عبدالله رمضان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-029", "title": "التسويق والبيع عبر الانترنت", "author": "د-توفيق محمد عبد المحسن", "publisher": "دار الفكر العربي", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-030", "title": "التفكير الابتكاري", "author": "د-ابتسام عمران", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-031", "title": "التمويل والاداره الماليه", "author": "احمد فهمي ابو القمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-032", "title": "التمويل والادراره الماليه", "author": "احمد فهمي ابو القمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-033", "title": "الثقافه التنظميه", "author": "د-يحي عطوه الزنط", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-034", "title": "الرقابه المصرفيه", "author": "د- محمد احمد عبد النبي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-035", "title": "السخاء البيئي ودوره", "author": "د-فرمان جراد المجذاب", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-036", "title": "السلوك الاداري والهندسه الاداريه", "author": "ايهاب عيسي المصري", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-037", "title": "السلوك التفاوضي واختلاف الثقافات", "author": "د-علي صالح موسي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-038", "title": "السلوك التنظيمي", "author": "د- ايمان لطفي الشناوي", "publisher": "غير مذكور", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-039", "title": "الصحه والسلامه المهنيه", "author": "د-احمد السروي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-040", "title": "القرارات الاداريه", "author": "د-وجدي شفيق", "publisher": "شركه ناس للطباعه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-041", "title": "المحيط الازرق", "author": "غير مذكور", "publisher": "مكتبه جرير", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-042", "title": "المشروعات الصغيره والمتوسطه", "author": "د-عاطف ياسين الشريف", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-043", "title": "المفاهيم الساسيه في ثقافه العمل الحر", "author": "م-احمد الجندي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-044", "title": "الهندسه الماليه واداره المخاطر", "author": "احمد فهمي ابو القمصان", "publisher": "دار الاصول للطباعه", "category": "إدارة", "copies": 6, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-045", "title": "بورصه الاوراق الماليه", "author": "د-محمد فاروق سباع", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-046", "title": "بورصه الاوراق الماليه", "author": "د-محمد عبد الفتاح", "publisher": "الشركه العربيه المتحده", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-047", "title": "تسويق الخدمات", "author": "اد-هاني حامد الضمور", "publisher": "الشركه العربيه المتحده", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-048", "title": "تطوير راس المال الفكري", "author": "سهام دربالي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-049", "title": "تكنولجيا المعلومات", "author": "د-اشرف السعيد", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-050", "title": "تكنولوجيات التصنيع الذكيه", "author": "د-عبدالستار محمد", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-051", "title": "تنظيم واداره الاستثمار", "author": "د-جمال محمد الزناتي", "publisher": "مؤسسه شباب الجامعه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-052", "title": "دراسات متقدمه في الاداره", "author": "ا- محمد المحمدي الماضي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-053", "title": "دراسه الجدوي الاقتصاديه", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-054", "title": "دور الذكاء الاصطناعي في تحقيق الميزه التنافسيه", "author": "د-شريف صلاح ابراهيم", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-055", "title": "دور نظم المعلومات الاداريه", "author": "د-محمد عبد الرازق حجازي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-056", "title": "دور نظم المعلومات الاداريه", "author": "محمد عبد الرازق حجازي", "publisher": "غير مذكور", "category": "إدارة", "copies": 4, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-057", "title": "قياس الاداء المؤسسي", "author": "د-عبد الرحيم محمد", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-058", "title": "قياس العائد علي الاستثمار", "author": "د-جاك فيليبس", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-059", "title": "كفاءه وجوده الوجسيستيه", "author": "د-ثابت عبد الرحمن", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-060", "title": "مبادئ اداره اعمال", "author": "احمد فهمي ابو القمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-061", "title": "مبادئ اداره الاعمال", "author": "احمد فهمي ابو القمصان", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-062", "title": "مبادئ اداره الاعمال", "author": "احمد فهمي ابو القمصان", "publisher": "دار الاصول للطباعه", "category": "إدارة", "copies": 4, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-063", "title": "مبادئ السلوك التنظيمي", "author": "د-عمرو محمد انور صادق", "publisher": "غير مذكور", "category": "إدارة", "copies": 2, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-064", "title": "مبادئ السلوك التنظيمي", "author": "د-عمرو محمد انور صادق", "publisher": "مطابع الدار الهندسيه", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-065", "title": "مرشد الذكياء الكامل", "author": "ساره وايت", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-066", "title": "موضوعات مختاره في السلوق التنظيمي", "author": "د-ايمان لطفي الشناوي", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "MGT-067", "title": "نظم المعلومات الاداريه", "author": "اد سيد محمد جاد الرب", "publisher": "غير مذكور", "category": "إدارة", "copies": 1, "shelf": "رف MGT", "status": "متاح"}, {"code": "ECO-001", "title": "استخدامات الحاسب في التطبيقات التجاريه", "author": "د-خالد عبد الرحمن", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 11, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-002", "title": "اقتصاد التنميه", "author": "د-ابوبكر متولي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-003", "title": "اقتصاديات التجاره الخارجيه", "author": "د-عطا الله ابو يوسف ابادير", "publisher": "مكتبه عين شمس", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-004", "title": "اقتصاديات التمويل الدولي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-005", "title": "اقتصاديات التمويل الدولي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 12, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-006", "title": "اقتصاديات الماليه العامه", "author": "د-حمدي العناني", "publisher": "جهاز نشر وتوزيع الكتاب الجامعي", "category": "اقتصاد", "copies": 2, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-007", "title": "الاقتصاد الرياضي", "author": "د-فتحي صالح ابو سدره", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-008", "title": "الاقتصاد القياسي", "author": "د-مصطفي عبد المنعم الخواجه", "publisher": "دار فاروس العمليه", "category": "اقتصاد", "copies": 2, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-009", "title": "التحليل الاقتصاد الجزئي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-010", "title": "التحليل الاقتصاد الكلي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-011", "title": "التحليل الاقتصادي الجزئي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 12, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-012", "title": "التحليل الاقتصادي الجزئي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 2, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-013", "title": "التطور الاقتصادي وتحليل الموارد", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-014", "title": "التنميه الاقتصاديه", "author": "د-عمر سالمان", "publisher": "جهاز نشر وتوزيع الكتاب الجامعي", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-015", "title": "الموارد الاقتصاديه", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 4, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-016", "title": "الموارد الاقتصاديه", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 7, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-017", "title": "النظم الاقتصادي العالمي الجديد", "author": "د-عبد المطلب عبد الحميد", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-018", "title": "النقود الالكترونيه في عصر العولمه", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-019", "title": "دراسات الجدوي الاقتصاديه", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-020", "title": "دليل الاستثمار في البورصه المصريه", "author": "د-مني قاسم", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-021", "title": "سياسات الاقتصاد الكلي", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 9, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-022", "title": "عمليات البنوك", "author": "د-بلال الانصاري", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-023", "title": "كيفيه التغلب علي الركود الاقتصادي", "author": "غير مذكور", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-024", "title": "لاقتصاد المالي", "author": "د-احمد بد\\يع بليح", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 2, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-025", "title": "مشكلات اقتصاديه معاصره", "author": "د-نفين طريح", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 2, "shelf": "رف ECO", "status": "متاح"}, {"code": "ECO-026", "title": "نظريات وسياسات التنميه الاقتصاديه", "author": "د-محمد صفوت قابل", "publisher": "غير مذكور", "category": "اقتصاد", "copies": 1, "shelf": "رف ECO", "status": "متاح"}, {"code": "HUM-001", "title": "حقوق الانسان والسكان", "author": "د-عادل المهدي", "publisher": "غير مذكور", "category": "حقوق إنسان", "copies": 3, "shelf": "رف HUM", "status": "متاح"}, {"code": "GEN-001", "title": "الاقتصاد القياسي", "author": "غير مذكور", "publisher": "غير مذكور", "category": "غير محدد", "copies": 1, "shelf": "رف GEN", "status": "متاح"}, {"code": "ACC-001", "title": "الافصاح المحاسبي", "author": "احمد عبد الصباغ", "publisher": "دار حميثرا للنشر", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-002", "title": "الضرئب الالكترونيه", "author": "مبروك محمد نصير", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-003", "title": "المحاسبه الاداريه", "author": "د- احمد ظاهر", "publisher": "الشركه العربيه المتحده", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-004", "title": "المحاسبه الحكوميه", "author": "د-شحاته السيد شحاته-عبد الوهاب نصر علي", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-005", "title": "المحاسبه الحكوميه", "author": "د-توفيق عبد الجليل", "publisher": "الشركه العربيه المتحده", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-006", "title": "المحاسبه الضربيه المتقدمه", "author": "د-عبد الرسول عبد الهادي-د-شوقي الحفناوي", "publisher": "مطابع غباشي", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-007", "title": "المحاسبه الضربيه للمنشات", "author": "د-احمد شوقي اسماعيل", "publisher": "مؤسسه طيبه للنشر والتوزيع", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-008", "title": "المحاسبه والرقابه علي المال العام", "author": "د-محمد عبد الحافظ عبد العال", "publisher": "سما للنشر والتوزيع", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-009", "title": "المشتقات المايه", "author": "د-طارق عبد العال حماد", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-010", "title": "المعاير المحاسبيه الدوليه", "author": "د- وليد عبد القادر", "publisher": "الشركه العربيه المتحده", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-011", "title": "المنشات الماليه", "author": "د-احمد فهمي ابو القمصان-د-جاد الرب المنياوي", "publisher": "غير مذكور", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-012", "title": "تاثير تطبيق حوكمه الشركات علي مخاطر نظم", "author": "د-علا محمد شوقي ابراهيم عيسي", "publisher": "غير مذكور", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-013", "title": "تشغيل البيانات المحاسبيه", "author": "د-محمد خميس عبد الرازق", "publisher": "دار البراء", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-014", "title": "تكنولوجيا سلسله الكتله", "author": "د-امين السيد احمد لطفي", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-015", "title": "حقوق المساهمين الماليه في الشركات", "author": "د-اسحق بورماد", "publisher": "مركز الدراسات العربيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-016", "title": "حكومه تكنولوجيا المعلومات", "author": "د-نادر شعبان ابراهيم السواح", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-017", "title": "دراسات في المحاسبه الضربيه", "author": "عبد الرسول عبد الهادي", "publisher": "غير مذكور", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-018", "title": "شرح معاير المحاسبه المصريه", "author": "مبروك محمد نصير", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-019", "title": "مبادئ النظم المحاسبيه", "author": "د-عبد الرحمن عليان", "publisher": "غير مذكور", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-020", "title": "محاسبه المنشات الماليه", "author": "ا-د-يوسف مصطفي سعاده-د-احمد حسن", "publisher": "الشركه العربيه المتحده", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-021", "title": "مراجعه انظمه المحاسبه الالكترونيه", "author": "شحاته السيد شحاته", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-022", "title": "معاير المحاسبه المصريه", "author": "د-مبروك محمد نصير", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-023", "title": "موسوعه الضرائب المتكامله", "author": "د-مبروك محمد نصير-طلعت عبد السلام راجح", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "ACC-024", "title": "نظريه المراجعه", "author": "د-نصر صالح محمد", "publisher": "الدار الجامعيه", "category": "محاسبة", "copies": 1, "shelf": "رف ACC", "status": "متاح"}, {"code": "MIS-001", "title": "basic-net2008", "author": "محمد عبد الكريم", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-002", "title": "اداره قواعد البيانات", "author": "م-عزب محمد عزب", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-003", "title": "اساسيات الاتصالات والشبكات", "author": "د-سعيد حسن ابراهيم", "publisher": "مكتبه دار المعرفه", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-004", "title": "اضواء علي المصطلحات التجاريه", "author": "ا-عبد القادر عثمان", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-005", "title": "الحوسبه السحابيه", "author": "د-اسراءممدوح", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-006", "title": "الذكاء الاصطناعي وميكنه الذكاء الانساني", "author": "د-جمال محمود عبد اللطيف", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-007", "title": "الروبوت ومعالجه المعلومات اليا", "author": "د-جمال محمود عبد اللطيف", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-008", "title": "الشبكات", "author": "رامي عبد العزيز", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-009", "title": "تحليل وتصميم النظم", "author": "د-وائل محمد فريد", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-010", "title": "تصميم واداره قواعد البيانات", "author": "د-ناصر نور الدين انور", "publisher": "الدار الجامعيه", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-011", "title": "تطبيقات الانتر نت والوسائط المتعدده", "author": "د-سامح محمد سعيد", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-012", "title": "تطبيقات فوتو شوب", "author": "عبد المنعم فريد", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-013", "title": "حزم وتطبيقات مكتبيه", "author": "د-خالد عبد الرحمن", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 2, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-014", "title": "شعبه نظم معلومات -كتاب تمارين", "author": "غير مذكور", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-015", "title": "مقدمه في نظم التشغيل", "author": "د-خالد عببد الرحمن", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-016", "title": "نظم المعلومات الاداريه", "author": "د-سيد محمد جاد الرب", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}, {"code": "MIS-017", "title": "وورد باريس", "author": "م-احمد هيكل", "publisher": "غير مذكور", "category": "نظم معلومات", "copies": 1, "shelf": "رف MIS", "status": "متاح"}];
+let books = JSON.parse(localStorage.getItem('library_catalog_v1')) || INITIAL_BOOKS;
+let editIndex = -1;
+
+function populateCategories() {
+  const sel = document.getElementById('catFilter');
+  const cats = [...new Set(books.map(b => b.category))];
+  sel.innerHTML = '<option value="">كل التخصصات</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function updateKPIs() {
+  document.getElementById('kpiTitles').textContent = books.length;
+  document.getElementById('kpiCopies').textContent = books.reduce((s, b) => s + Number(b.copies || 0), 0);
+  document.getElementById('kpiAvail').textContent = books.filter(b => b.status === 'متاح').reduce((s, b) => s + Number(b.copies || 0), 0);
+  document.getElementById('kpiLoaned').textContent = books.filter(b => b.status === 'مُعار').reduce((s, b) => s + Number(b.copies || 0), 0);
+}
+
+function renderTable() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const cat = document.getElementById('catFilter').value;
+  const st = document.getElementById('statusFilter').value;
+
+  const filtered = books.map((b, idx) => ({...b, _idx: idx})).filter(b => {
+    const matchQ = !q || [b.code, b.title, b.author, b.publisher, b.shelf].some(v => String(v || '').toLowerCase().includes(q));
+    const matchC = !cat || b.category === cat;
+    const matchS = !st || b.status === st;
+    return matchQ && matchC && matchS;
+  });
+
+  const tbody = document.getElementById('booksBody');
+  tbody.innerHTML = filtered.map(b => {
+    const badgeCls = b.status === 'متاح' ? 'st-avail' : (b.status === 'مُعار' ? 'st-loan' : 'st-dmg');
+    return `<tr>
+      <td><span class="code-tag">${b.code}</span></td>
+      <td>${b.category}</td>
+      <td><strong>${b.title}</strong></td>
+      <td>${b.author}</td>
+      <td>${b.publisher}</td>
+      <td style="text-align:center;">${b.copies}</td>
+      <td style="text-align:center;">${b.shelf}</td>
+      <td><span class="badge ${badgeCls}">${b.status}</span></td>
+      <td class="btn-action" style="white-space:nowrap;">
+        <button class="btn btn-outline" style="padding:4px 8px;font-size:0.8rem;" onclick="toggleStatus(${b._idx})">تبديل الحالة</button>
+        <button class="btn btn-outline" style="padding:4px 8px;font-size:0.8rem;" onclick="openEditModal(${b._idx})">تعديل</button>
+      </td>
+    </tr>`;
+  }).join('');
+  updateKPIs();
+}
+
+function toggleStatus(idx) {
+  books[idx].status = books[idx].status === 'متاح' ? 'مُعار' : 'متاح';
+  localStorage.setItem('library_catalog_v1', JSON.stringify(books));
+  renderTable();
+}
+
+function openAddModal() {
+  editIndex = -1;
+  document.getElementById('modalTitle').textContent = 'إضافة كتاب جديد للفهرس';
+  document.getElementById('fCode').value = '';
+  document.getElementById('fTitle').value = '';
+  document.getElementById('fAuthor').value = '';
+  document.getElementById('fPublisher').value = 'غير مذكور';
+  document.getElementById('fCopies').value = 1;
+  document.getElementById('fShelf').value = '';
+  document.getElementById('fStatus').value = 'متاح';
+  document.getElementById('bookModal').classList.add('open');
+}
+
+function openEditModal(idx) {
+  editIndex = idx;
+  const b = books[idx];
+  document.getElementById('modalTitle').textContent = 'تعديل بيانات الكتاب';
+  document.getElementById('fCode').value = b.code;
+  document.getElementById('fTitle').value = b.title;
+  document.getElementById('fAuthor').value = b.author;
+  document.getElementById('fPublisher').value = b.publisher;
+  document.getElementById('fCategory').value = b.category;
+  document.getElementById('fCopies').value = b.copies;
+  document.getElementById('fShelf').value = b.shelf;
+  document.getElementById('fStatus').value = b.status;
+  document.getElementById('bookModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('bookModal').classList.remove('open'); }
+
+function saveBook() {
+  const item = {
+    code: document.getElementById('fCode').value.trim() || 'NEW-' + (books.length + 1),
+    title: document.getElementById('fTitle').value.trim(),
+    author: document.getElementById('fAuthor').value.trim() || 'غير مذكور',
+    publisher: document.getElementById('fPublisher').value.trim() || 'غير مذكور',
+    category: document.getElementById('fCategory').value,
+    copies: parseInt(document.getElementById('fCopies').value) || 1,
+    shelf: document.getElementById('fShelf').value.trim() || 'رف عام',
+    status: document.getElementById('fStatus').value
+  };
+  if (!item.title) { alert('يرجى إدخال اسم الكتاب'); return; }
+  if (editIndex >= 0) books[editIndex] = item;
+  else books.unshift(item);
+  localStorage.setItem('library_catalog_v1', JSON.stringify(books));
+  populateCategories();
+  renderTable();
+  closeModal();
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('catFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  renderTable();
+}
+
+function exportCSV() {
+  const headers = ['كود الفهرسة','التخصص','اسم الكتاب','المؤلف','دار النشر','النسخ','موقع الرف','الحالة'];
+  const rows = books.map(b => [b.code, b.category, b.title, b.author, b.publisher, b.copies, b.shelf, b.status].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'فهرس_المكتبة_المحدث.csv';
+  a.click();
+}
+
+populateCategories();
+renderTable();
+</script>
+</body>
+</html>
